@@ -221,7 +221,9 @@ async def filling_fio(callback: types.CallbackQuery, state: FSMContext, bot: Bot
     await callback.message.answer(
         "Отлично\n"
         "Теперь вам нужно заполнить документы и отправить ответственному на проверку\n"
-        "Но для начала введите свое ФИО"
+        "Но для начала введите свое ФИО\n"
+        "Важно, вводя ваши персональные данные, вы соглашаетесь с политикой обработки персональных расположенные по адресу:\n"
+        "https://disk.yandex.ru/i/oRIIU--LF0y7CA"
     )
     await state.set_state(PostAnketaStates.email_ask)
 
