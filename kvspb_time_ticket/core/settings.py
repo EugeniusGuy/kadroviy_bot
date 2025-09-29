@@ -23,10 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-q#=22d(nsmqf_b8v+(nw(xzzfek=s#len0iq*70m@g@x7*(6^c'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ['http://www.delaem.com']
+CSRF_TRUSTED_ORIGINS = ['https://hr.kvzpb-work.ru']
 
 # Application definition
 
