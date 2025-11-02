@@ -1,14 +1,15 @@
 from aiogram import Router, types, Bot
 from aiogram.fsm.context import FSMContext
-
+import logging
 
 import texts
 
 router = Router()
-
+logger = logging.getLogger(__name__)
 
 @router.message(lambda c: c.text == texts.declaration)
 async def on_declaration_button(message: types.Message, state: FSMContext):
+    logger.info(f"on_declaration_button. user {message.from_user.id}. text: {message.text}")
     await state.clear()
     kb = [
         [types.InlineKeyboardButton(text="В рамках декларации компании", callback_data="company")],
@@ -24,6 +25,7 @@ async def on_declaration_button(message: types.Message, state: FSMContext):
 
 @router.callback_query(lambda msg: msg.data == 'gos_work')
 async def on_gos_work_button(callback: types.CallbackQuery, bot: Bot):
+    logger.info(f"on_gos_work_button. user {callback.from_user.id}. data: {callback.data}")
     await callback.message.answer(
         "В рамках поступления на госслужбу вам необходимо составить декларацию о доходах.\n\n"
         "Для этого вам необходимо воспользоваться программой по составлению декларации о доходах.\n\n"

@@ -8,17 +8,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.types import FSInputFile
-from aiogram.utils.chat_action import ChatActionSender, logger
+from aiogram.utils.chat_action import ChatActionSender
 
 import texts
 import services
-
 
 router = Router()
 
 current_file_path = __file__
 directory_path = os.path.dirname(current_file_path)
-
+logger = logging.getLogger(__name__)
 
 class PostAnketaStates(StatesGroup):
     choose_district = State()
@@ -45,9 +44,9 @@ class BookingVisitor(StatesGroup):
 
 @router.callback_query(lambda msg: msg.data == texts.administration)
 async def choose_post_handler(callback: types.CallbackQuery, state: FSMContext):
-    logging.info(f"choose_post_handler. user {callback.from_user.id}. data: {callback.data}")
+    logger.info(f"choose_post_handler. user {callback.from_user.id}. data: {callback.data}")
     posts = services.fetch_available_posts()
-    logging.info(f"ПОСТс {posts}")
+    logger.info(f"Получены должности: {posts}")
 
     kb = [[types.InlineKeyboardButton(text=str(post['name']).capitalize(), callback_data=str(post['id']))] for post in posts]
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
@@ -63,9 +62,9 @@ async def choose_post_handler(callback: types.CallbackQuery, state: FSMContext):
 @router.callback_query(PostAnketaStates.choose_district)
 async def choose_district_handler(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(post=callback.data)
-
+    logger.info(f"choose_district_handler. user {callback.from_user.id}. data: {callback.data}")
     districts = services.fetch_persons_info(callback.data)
-
+    logger.info(f"Получены районы: {districts}")
     kb = [[types.InlineKeyboardButton(text=district["name"], callback_data=district["name"])] for district in districts]
     kb.append(
         [types.InlineKeyboardButton(text='Выбрать другую должность', callback_data='another_post')]
@@ -82,6 +81,7 @@ async def choose_district_handler(callback: types.CallbackQuery, state: FSMConte
 
 @router.callback_query(PostAnketaStates.choose_judgment_area)
 async def choose_district_judgment_area_handler(callback: types.CallbackQuery, state: FSMContext):
+    logger.info(f"choose_district_judgment_area_handler. user {callback.from_user.id}. data: {callback.data}")
     if callback.data == 'another_post':
         posts = services.fetch_available_posts()
 
@@ -104,7 +104,7 @@ async def choose_district_judgment_area_handler(callback: types.CallbackQuery, s
     district = search["district"]
 
     districts = services.fetch_judgment_places(district, int(post))
-    logging.info(f"ПОСТс {districts}")
+    logger.info(f"Получены участки: {districts}")
 
     if not districts:
         await callback.message.answer(
@@ -129,6 +129,7 @@ async def choose_district_judgment_area_handler(callback: types.CallbackQuery, s
 
 @router.callback_query(PostAnketaStates.get_info_about_place)
 async def choose_area_handler(callback: types.CallbackQuery, state: FSMContext):
+    logger.info(f"choose_area_handler. user {callback.from_user.id}. data: {callback.data}")
     if callback.data == "another_area_district":
         search = await state.get_data()
         post = search["post"]
@@ -148,7 +149,7 @@ async def choose_area_handler(callback: types.CallbackQuery, state: FSMContext):
     id_district = callback.data
 
     judgment_place = services.fetch_judgement_place_byid(id_district)
-
+    logger.info(f'Получена информация по участку: {judgment_place}')
     kb = [[types.InlineKeyboardButton(text="Подать документы на этот участок", callback_data=str(id_district))],
           [types.InlineKeyboardButton(text="Выбрать другой участок", callback_data="another")], ]
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
@@ -169,6 +170,7 @@ async def choose_area_handler(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(PostAnketaStates.register_hr_site)
 async def start_instruction(callback: types.CallbackQuery, state: FSMContext):
+    logger.info(f"start_instruction. user {callback.from_user.id}. data: {callback.data}")
     if callback.data == "another":
         # await state.update_data(district=callback.data)
         search = await state.get_data()
@@ -216,6 +218,7 @@ async def start_instruction(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(PostAnketaStates.fio_ask)
 async def filling_fio(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    logger.info(f"filling_fio. user {callback.from_user.id}. data: {callback.data}")
     id_judgement_place = callback.data
     await state.update_data(id_judgement_place=id_judgement_place)
     await callback.message.answer(
@@ -230,6 +233,7 @@ async def filling_fio(callback: types.CallbackQuery, state: FSMContext, bot: Bot
 
 @router.message(PostAnketaStates.email_ask)
 async def filling_email(message: types.Message, state: FSMContext, *args, **kwargs):
+    logger.info(f"filling_fio. user {message.from_user.id}. text: {message.text}")
     fio_person = message.text
     try:
         surname = fio_person.split()[0]
@@ -245,6 +249,7 @@ async def filling_email(message: types.Message, state: FSMContext, *args, **kwar
 
 @router.message(PostAnketaStates.start_filling_anket)
 async def filling_anket(message: types.Message, state: FSMContext, bot: Bot, *args, **kwargs):
+    logger.info(f"filling_anket. user {message.from_user.id}. text: {message.text}")
     email_person = message.text
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     if re.match(pattern, email_person) == None:
@@ -252,7 +257,7 @@ async def filling_anket(message: types.Message, state: FSMContext, bot: Bot, *ar
          return
 
     await state.update_data(email_person=email_person)
-    logging.info(f"FILLING ANKET {await state.get_data()}")
+    logger.info(f"FILLING ANKET {await state.get_data()}")
 
     data = await state.get_data()
     id_judgement_place = data["id_judgement_place"]
@@ -308,19 +313,21 @@ async def filling_anket(message: types.Message, state: FSMContext, bot: Bot, *ar
 
 @router.callback_query(PostAnketaStates.user_send_docs)
 async def info_about_tender(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    logger.info(f"info_about_tender. user {callback.from_user.id}. data: {callback.data}")
     # Функ создания записи кандидата
     data = await state.get_data()
-    logging.info("DATA"+str(data))
+    logger.info("DATA"+str(data))
     user_id = callback.from_user.id
-    logging.info(user_id)
+    logger.info(user_id)
     fio = str(data["fio_person"])
+    logger.info(fio)
     surname = fio.split()[0]
     name = fio.split()[1]
     try:
         last_name = fio.split()[2]
     except Exception as e:
         last_name = None
-    logging.info("Ф= " + surname + " N = " + name)
+    logger.info("Ф= " + surname + " N = " + name)
 
     services.post_candidate(name, surname, last_name, data["email_person"], user_id, data['id_judgement_place'])
 
@@ -342,6 +349,7 @@ async def info_about_tender(callback: types.CallbackQuery, state: FSMContext, bo
 
 @router.callback_query(PostAnketaStates.user_waiting_anket)
 async def waiting_for_info(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    logger.info(f"waiting_for_info. user {callback.from_user.id}. data: {callback.data}")
     kb = [
         [types.InlineKeyboardButton(text="Проверить статус заявки", callback_data="data")]
     ]
@@ -359,6 +367,7 @@ async def waiting_for_info(callback: types.CallbackQuery, state: FSMContext, bot
     data = services.fetch_candidate_status(user_id)
     status = data["status"]
     message_to_candidate = data['message_to_candidate']
+    logger.info(f'Статус заявки: {message_to_candidate}')
     # services.fetch_persons_info(filters="filterByFormula={Участок}=")
     # здесь будет сервис о доставлении статуса
     text_to_send =  ("Документы не были получены инспектором. "
@@ -395,6 +404,7 @@ async def waiting_for_info(callback: types.CallbackQuery, state: FSMContext, bot
 
 @router.callback_query(PostAnketaStates.user_collected_all_docs)
 async def filling_work_docs(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    logger.info(f"filling_work_docs. user {callback.from_user.id}. data: {callback.data}")
     await callback.message.answer(
         text="Наши поздравления!\n"
              "Для поступления на государственную гражданскую службу необходимо предоставить следующие документы.")
@@ -429,6 +439,7 @@ async def filling_work_docs(callback: types.CallbackQuery, state: FSMContext, bo
 
 @router.callback_query(BookingVisitor.start_booking)
 async def start_booking(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    logger.info(f"start_booking. user {callback.from_user.id}. data: {callback.data}")
     await callback.message.answer(
         "Отлично. \nТеперь вам необходимо позвонить специалисту по заполнению справки БК и направить вашу справку на проверку."
         "\n\nКонтакты специалиста для связи:"

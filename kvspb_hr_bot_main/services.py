@@ -6,9 +6,10 @@ import requests
 
 socket = "http://backend:80"
 
-
+logger = logging.getLogger(__name__)
 # получение должностей
 def fetch_available_posts(filters="") -> typing.Dict:
+    logger.info(f"Поиск должностей в: {filters}")
     response = requests.get(
         socket+"/api/judgment/vacancy/types"
         +filters,
@@ -16,11 +17,11 @@ def fetch_available_posts(filters="") -> typing.Dict:
             # "Authorization": AIRTABLE_TOKEN,
         },
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()
 
 def fetch_persons_info(filters=""):
-    logging.info("ФИЛЬТРАЦИЯ" + filters)
+    logger.info(f"Поиск районов для должности: {filters}")
     response = requests.get(
         socket+"/api/judgment/district?vacancy="
         +filters,
@@ -28,21 +29,22 @@ def fetch_persons_info(filters=""):
             # "Authorization": AIRTABLE_TOKEN,
         },
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()
 
 def fetch_candidate_status(tgid=""):
-    # logging.info("ФИЛЬТРАЦИЯ" + filters)
+    logging.info(f"Статус заявки по id {tgid}")
     response = requests.get(
         socket+"/api/candidate/" + str(tgid) + "/check-status",
         headers={
             # "Authorization": AIRTABLE_TOKEN,
         },
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()
 
 def post_candidate(name: str, surname: str, last_name:str, email: str, tgid: str, id_judgement_place):
+    logging.info(f"POST candidate {name}, {surname}, {last_name}, {email}, {tgid}, {id_judgement_place}")
     data = {
         "name": name,
         "surname": surname,
@@ -58,11 +60,11 @@ def post_candidate(name: str, surname: str, last_name:str, email: str, tgid: str
         },
         json=data
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()
 
 def fetch_judgement_place_byid(filters):
-    logging.info("ФИЛЬТРАЦИЯ" + filters)
+    logger.info(f'Поиск информации по участку {filters}')
     response = requests.get(
         socket+"/api/judgment/"
         +filters,
@@ -70,7 +72,7 @@ def fetch_judgement_place_byid(filters):
             # "Authorization": AIRTABLE_TOKEN,
         },
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()
 
 
@@ -85,26 +87,26 @@ def get_unique_data_by_field(field: "str", table_func) -> typing.List["str"]:
     return list(unique_set_list)
 
 def fetch_judgment_places(district: "str", post: "int",):
-     response = requests.get(
+    logging.info(f"Поиск участка по району {district} должности: {post}")
+    response = requests.get(
         socket+"/api/judgment/",
         headers={
             # "Authorization": AIRTABLE_TOKEN,
         },
     )
-    #  logging.info(f"Жажменты без фильт {response.json()}")
-    #  logging.info(f"Дист {district} ПОСТ {post}")
+    logging.info(f"Участки без фильтра {response.json()}")
     #  a_list = json.loads(response.json())
-     filtered_response = [
+    filtered_response = [
          dictionary for dictionary in response.json()
          if dictionary['district'] == district and post in dictionary['vacancies']
      ]
-     logging.info(filtered_response)
-     return filtered_response
+    logger.info(f'Отфильтрованный результат по поиску участков: {filtered_response}')
+    return filtered_response
 
 def resend_document_status(tg_id):
-    logging.info(f"resend_document_status: {tg_id}")
+    logger.info(f"resend_document_status: {tg_id}")
     response = requests.put(
         socket+f"/api/candidate/{tg_id}/recheck-status"
     )
-    logging.info(response.json())
+    logger.info(response.json())
     return response.json()

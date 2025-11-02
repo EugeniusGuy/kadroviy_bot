@@ -6,12 +6,12 @@ services:
 
     volumes:
       - ./data:/app/data/database/
-
   bot:
     env_file: "bot.env"
     build: kvspb_hr_bot_main/
     depends_on:
       - backend
-
+    volumes:
+      - ./logs:/app/logs   # монтируем локальную папку ./logs -> /app/logs в контейнере
 volumes:
   db:

@@ -10,6 +10,6 @@ WORKDIR /app
 COPY . /app
 
 # Запускаем бота при старте контейнера
-CMD ["python", "main.py"]
+CMD ["python", "main.py", "test.log"]
 
 

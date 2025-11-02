@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-
+from logging.handlers import RotatingFileHandler
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
@@ -11,11 +11,30 @@ import texts
 
 from logic import komitet_path, apms_path, declaration_path
 
+# формат
+fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+# файловый обработчик (включая ротацию)
+file_handler = RotatingFileHandler('/app/logs/bot.log', maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+file_handler.setFormatter(fmt)
+file_handler.setLevel(logging.DEBUG)
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# потоковый обработчик (stdout) — удобно при отладке в Docker
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(fmt)
+stream_handler.setLevel(logging.INFO)
+
+# корневой логгер: очистим старые хэндлеры и добавим наши
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# убрать существующие хэндлеры во избежание дублирования
+for h in list(logger.handlers):
+    logger.removeHandler(h)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 # Объект бота
 bot = Bot(token=os.getenv("TG_TOKEN"))
 # Диспетчер
@@ -29,7 +48,7 @@ dp.include_router(declaration_path.router)
 # Хэндлер на команду /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
-    logging.info(f"cmd_start: {message.from_user.id}")
+    logger.info(f"cmd_start: {message.from_user.id}")
     await state.clear()
     kb = [
         [types.KeyboardButton(text=texts.vacancies)],
@@ -45,7 +64,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 @dp.message(lambda c: c.text == texts.vacancies)
 async def vacancies(message: types.Message):
-    logging.info(f"vacancies: {message.from_user.id}")
+    logger.info(f"vacancies: {message.from_user.id}")
     kb = [
         [types.InlineKeyboardButton(text=texts.komitet, callback_data=texts.komitet)],
         [types.InlineKeyboardButton(text=texts.administration, callback_data=texts.administration)],
@@ -62,7 +81,7 @@ class FaqState(StatesGroup):
 
 @dp.message(lambda c: c.text == texts.faq)
 async def faq(message: types.Message, state: FSMContext):
-    logging.info(f"faq: {message.from_user.id}") 
+    logger.info(f"faq: {message.from_user.id}")
     await state.clear()
 
     faq_answer = [
